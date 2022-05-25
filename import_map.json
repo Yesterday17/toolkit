@@ -1,0 +1,14 @@
+{
+  "imports": {
+    "extender/": "./lib/extender/",
+    "extender/prelude": "./lib/extender/mod.ts",
+    "constants": "./lib/constants/mod.ts",
+
+    "rr/": "./lib/rr/",
+    "rr": "./lib/rr/rr.ts",
+
+    "sql/": "./lib/sql/",
+
+    "sleep": "./vendors/sleep.ts"
+  }
+}
