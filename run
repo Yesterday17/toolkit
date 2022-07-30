@@ -1,0 +1,3 @@
+#!/bin/bash
+
+deno run --allow-net --import-map=import_map.json ./scripts/$1.ts

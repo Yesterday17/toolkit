@@ -1,3 +1,17 @@
+export const Data = Symbol("data");
+
+type RRFile = {
+  name: string;
+  [Data]: Blob | string;
+  type?: string;
+};
+
+function isRRFile(
+  o: Record<string | symbol, Blob | string | number | boolean | null>,
+): o is RRFile {
+  return typeof o[Data] !== "undefined";
+}
+
 export interface RROptions {
   query?: Record<string, number | string>;
   header?: HeadersInit;
@@ -9,7 +23,11 @@ export interface RROptions {
 
   form?: Record<
     string,
-    string | number | Blob | { name: string; data: Blob; type?: string }
+    | string
+    | number
+    | Blob
+    | RRFile
+    | Record<string, string | number | null | boolean>
   >;
   formType?: "urlencoded" | "form" | "json";
   body?: BodyInit;
@@ -43,34 +61,62 @@ export default async function rr(
   const url = `${protocol}://${base}${urlQuery}`;
 
   // construct body
-  let contentType = "";
+  let contentType = {};
   let body: BodyInit | null = null;
   if (typeof userBody !== "undefined") {
     body = userBody;
   } else if (form) {
+    for (const o of Object.values(form)) {
+      if (typeof o === "object") {
+        if (o instanceof Blob) {
+          console.log(
+            "[RR] Detected blob, switched content type to multipart/form-data",
+          );
+          formType = "form";
+        } else if (isRRFile(o)) {
+          console.log(
+            "[RR] Detected RR-File, switched content type to multipart/form-data",
+          );
+          formType = "form";
+        } else {
+          if (formType === "urlencoded") {
+            console.log(
+              "[RR] Object is not supported in urlencoded form, switching to application/json",
+            );
+          }
+          formType === "json";
+        }
+      }
+    }
+
     if (formType === "urlencoded") {
-      contentType = "application/x-www-form-urlencoded";
+      contentType = { "content-type": "application/x-www-form-urlencoded" };
       body = Object.entries(form).map(([k, v]) => {
         if (typeof v === "object") {
-          throw new Error(`${k}: Blob is not supported in urlencoded form`);
+          throw new Error(`${k}: Object is not supported in urlencoded form`);
         }
         return `${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
       }).join("&");
     } else if (formType === "form") {
-      contentType = "multipart/form-data";
       body = new FormData();
       for (const key in form) {
         const value = form[key];
         if (value instanceof Blob) {
           body.append(key, value);
         } else if (typeof value === "object") {
-          body.append(key, value.data.slice(0, -1, value.type), value.name);
+          const file = value as RRFile;
+          body.append(
+            key,
+            file[Data].slice(0, -1, file.type),
+            file.name,
+          );
         } else {
           body.append(key, String(value));
         }
       }
+      console.log("[RR]", body);
     } else if (formType === "json") {
-      contentType = "application/json";
+      contentType = { "content-type": "application/json" };
       body = JSON.stringify(form);
     }
   }
@@ -78,7 +124,7 @@ export default async function rr(
   const response = await fetch(url, {
     method: typeof method === "object" ? method.custom : method,
     headers: {
-      "content-type": contentType,
+      ...contentType,
       "user-agent": userAgent,
       ...header,
     },

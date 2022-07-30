@@ -1,7 +1,9 @@
-declare interface String {
-  spaceTo(to: string): string;
-  spaceToTab(): string;
-  spaceToComment(): string;
+declare global {
+  interface String {
+    spaceTo(to: string): string;
+    spaceToTab(): string;
+    spaceToComment(): string;
+  }
 }
 
 String.prototype.spaceTo = function (to) {

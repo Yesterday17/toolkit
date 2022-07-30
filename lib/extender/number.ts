@@ -1,8 +1,10 @@
-declare interface Number {
-  // Number -> binary string
-  bin(prefix?: boolean): string;
-  // Number -> hex string
-  hex(prefix?: boolean): string;
+declare global {
+  interface Number {
+    // Number -> binary string
+    bin(prefix?: boolean): string;
+    // Number -> hex string
+    hex(prefix?: boolean): string;
+  }
 }
 
 Number.prototype.bin = function (prefix = false) {
